@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Add Attendance - PersonnelHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-calendar-plus"></i> Add Attendance Record</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('attendance_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="POST" class="attendance-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="employee_id">{{ form.employee_id.label.text }} <span class="required">*</span></label>
+                    {{ form.employee_id(class="form-select") }}
+                    {% if form.employee_id.errors %}
+                    <div class="text-danger">{{ form.employee_id.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="date">{{ form.date.label.text }} <span class="required">*</span></label>
+                    {{ form.date(class="form-control", type="date") }}
+                    {% if form.date.errors %}
+                    <div class="text-danger">{{ form.date.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="time_in">{{ form.time_in.label.text }}</label>
+                    {{ form.time_in(class="form-control", type="time") }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="time_out">{{ form.time_out.label.text }}</label>
+                    {{ form.time_out(class="form-control", type="time") }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="status">{{ form.status.label.text }} <span class="required">*</span></label>
+                    {{ form.status(class="form-select") }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">{{ form.notes.label.text }}</label>
+            {{ form.notes(class="form-control", placeholder="Add any notes...", rows=3) }}
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Record
+            </button>
+            <a href="{{ url_for('attendance_list') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

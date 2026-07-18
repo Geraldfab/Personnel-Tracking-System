@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Employee - PersonnelHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-edit"></i> Edit Employee</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="POST" enctype="multipart/form-data" class="employee-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="profile-preview">
+            {% if employee.profile_photo %}
+            <img src="{{ url_for('static', filename='uploads/profiles/' + employee.profile_photo) }}" 
+                 alt="{{ employee.full_name }}" class="preview-image">
+            {% else %}
+            <div class="preview-image avatar-placeholder-lg">
+                {{ employee.first_name[:1] }}{{ employee.last_name[:1] }}
+            </div>
+            {% endif %}
+            <div class="preview-info">
+                <h4>{{ employee.full_name }}</h4>
+                <span class="badge bg-primary">{{ employee.employee_code }}</span>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="first_name">{{ form.first_name.label.text }} <span class="required">*</span></label>
+                    {{ form.first_name(class="form-control", placeholder="Enter first name") }}
+                    {% if form.first_name.errors %}
+                    <div class="text-danger">{{ form.first_name.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="last_name">{{ form.last_name.label.text }} <span class="required">*</span></label>
+                    {{ form.last_name(class="form-control", placeholder="Enter last name") }}
+                    {% if form.last_name.errors %}
+                    <div class="text-danger">{{ form.last_name.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="email">{{ form.email.label.text }} <span class="required">*</span></label>
+                    {{ form.email(class="form-control", placeholder="Enter email address") }}
+                    {% if form.email.errors %}
+                    <div class="text-danger">{{ form.email.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="phone">{{ form.phone.label.text }}</label>
+                    {{ form.phone(class="form-control", placeholder="Enter phone number") }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="address">{{ form.address.label.text }}</label>
+            {{ form.address(class="form-control", placeholder="Enter full address", rows=2) }}
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="date_of_birth">{{ form.date_of_birth.label.text }}</label>
+                    {{ form.date_of_birth(class="form-control", type="date", value=employee.date_of_birth.strftime('%Y-%m-%d') if employee.date_of_birth else '') }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="hire_date">{{ form.hire_date.label.text }}</label>
+                    {{ form.hire_date(class="form-control", type="date", value=employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else '') }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="department_id">{{ form.department_id.label.text }}</label>
+                    {{ form.department_id(class="form-select") }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="position_id">{{ form.position_id.label.text }}</label>
+                    {{ form.position_id(class="form-select") }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="profile_photo">{{ form.profile_photo.label.text }}</label>
+            <div class="file-upload">
+                {{ form.profile_photo(class="form-control", accept="image/*") }}
+                <small class="form-text">Leave empty to keep current photo. Allowed formats: JPG, PNG, GIF</small>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Employee
+            </button>
+            <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
