@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Employees - PersonnelHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-user-tie"></i> Employee Management</h1>
+    <div class="header-actions">
+        {% if current_user.has_permission('employees') %}
+        <a href="{{ url_for('employees_add') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Employee
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-card">
+    <form method="GET" class="filters-form">
+        <div class="filter-group">
+            <input type="text" name="search" placeholder="Search by name, code, or email..." 
+                   value="{{ search }}" class="form-control">
+        </div>
+        <div class="filter-group">
+            <select name="department" class="form-select">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if selected_department|int == dept.id %}selected{% endif %}>
+                    {{ dept.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="status" class="form-select">
+                <option value="">All Status</option>
+                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">
+            <i class="fas fa-search"></i> Filter
+        </button>
+        <a href="{{ url_for('employees_list') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-redo"></i> Reset
+        </a>
+    </form>
+</div>
+
+<!-- Employee Table -->
+<div class="data-card">
+    <div class="card-header">
+        <h3><i class="fas fa-list"></i> Employee List</h3>
+        <span class="badge bg-primary">{{ employees.total }} Employees</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Employee Code</th>
+                    <th>Department</th>
+                    <th>Position</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees.items %}
+                <tr>
+                    <td>
+                        <div class="employee-cell">
+                            {% if employee.profile_photo %}
+                            <img src="{{ url_for('static', filename='uploads/profiles/' + employee.profile_photo) }}" 
+                                 alt="{{ employee.full_name }}" class="employee-avatar">
+                            {% else %}
+                            <div class="employee-avatar avatar-placeholder">
+                                {{ employee.first_name[:1] }}{{ employee.last_name[:1] }}
+                            </div>
+                            {% endif %}
+                            <div class="employee-info">
+                                <a href="{{ url_for('employees_profile', id=employee.id) }}" class="employee-name">
+                                    {{ employee.full_name }}
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                    <td><code>{{ employee.employee_code }}</code></td>
+                    <td>{{ employee.department.name if employee.department else '-' }}</td>
+                    <td>{{ employee.position.title if employee.position else '-' }}</td>
+                    <td>{{ employee.email }}</td>
+                    <td>{{ employee.phone or '-' }}</td>
+                    <td>
+                        <span class="status-badge status-{{ 'active' if employee.is_active else 'inactive' }}">
+                            {{ 'Active' if employee.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('employees_profile', id=employee.id) }}" 
+                               class="btn btn-sm btn-info" title="View Profile">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if current_user.has_permission('employees') %}
+                            <a href="{{ url_for('employees_edit', id=employee.id) }}" 
+                               class="btn btn-sm btn-warning" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('employees_toggle_status', id=employee.id) }}" 
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm {{ 'btn-secondary' if employee.is_active else 'btn-success' }}"
+                                        title="{{ 'Deactivate' if employee.is_active else 'Activate' }}">
+                                    <i class="fas {{ 'fa-ban' if employee.is_active else 'fa-check' }}"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="fas fa-users fa-3x mb-3"></i>
+                        <p>No employees found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if employees.pages > 1 %}
+    <div class="pagination-container">
+        <nav aria-label="Employee pagination">
+            <ul class="pagination">
+                <li class="page-item {% if not employees.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('employees_list', page=employees.prev_num, search=search, department=selected_department, status=selected_status) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% for p in employees.iter_pages() %}
+                    {% if p %}
+                    <li class="page-item {% if p == employees.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('employees_list', page=p, search=search, department=selected_department, status=selected_status) }}">
+                            {{ p }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not employees.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('employees_list', page=employees.next_num, search=search, department=selected_department, status=selected_status) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

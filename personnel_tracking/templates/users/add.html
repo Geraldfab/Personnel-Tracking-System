@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Add User - PersonnelHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-user-plus"></i> Add New User</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('users_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="POST" class="user-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="username">{{ form.username.label.text }} <span class="required">*</span></label>
+                    {{ form.username(class="form-control", placeholder="Enter username") }}
+                    {% if form.username.errors %}
+                    <div class="text-danger">{{ form.username.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="email">{{ form.email.label.text }} <span class="required">*</span></label>
+                    {{ form.email(class="form-control", placeholder="Enter email address") }}
+                    {% if form.email.errors %}
+                    <div class="text-danger">{{ form.email.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="role">{{ form.role.label.text }} <span class="required">*</span></label>
+                    {{ form.role(class="form-select") }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="employee_id">{{ form.employee_id.label.text }}</label>
+                    {{ form.employee_id(class="form-select") }}
+                    <small class="form-text">Link this user to an employee profile</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <div class="form-check">
+                {{ form.is_active(class="form-check-input") }}
+                <label class="form-check-label" for="is_active">
+                    {{ form.is_active.label.text }}
+                </label>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Default Password:</strong> The user will need to change this password on first login.
+            <br>
+            <strong>Default password: password123</strong>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Create User
+            </button>
+            <a href="{{ url_for('users_list') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

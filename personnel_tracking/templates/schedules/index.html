@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Schedules - PersonnelHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-clock"></i> Schedule Management</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('schedules_add') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Schedule
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-card">
+    <form method="GET" class="filters-form">
+        <div class="filter-group">
+            <select name="employee_id" class="form-select">
+                <option value="">All Employees</option>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}" {% if selected_employee|int == emp.id %}selected{% endif %}>
+                    {{ emp.full_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="day_of_week" class="form-select">
+                <option value="">All Days</option>
+                <option value="0" {% if selected_day == 0 %}selected{% endif %}>Monday</option>
+                <option value="1" {% if selected_day == 1 %}selected{% endif %}>Tuesday</option>
+                <option value="2" {% if selected_day == 2 %}selected{% endif %}>Wednesday</option>
+                <option value="3" {% if selected_day == 3 %}selected{% endif %}>Thursday</option>
+                <option value="4" {% if selected_day == 4 %}selected{% endif %}>Friday</option>
+                <option value="5" {% if selected_day == 5 %}selected{% endif %}>Saturday</option>
+                <option value="6" {% if selected_day == 6 %}selected{% endif %}>Sunday</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">
+            <i class="fas fa-search"></i> Filter
+        </button>
+        <a href="{{ url_for('schedules_list') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-redo"></i> Reset
+        </a>
+    </form>
+</div>
+
+<!-- Schedule Table -->
+<div class="data-card">
+    <div class="card-header">
+        <h3><i class="fas fa-list"></i> Work Schedules</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Day</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Duration</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schedule in schedules %}
+                <tr>
+                    <td>
+                        <div class="employee-cell">
+                            <span class="employee-name">{{ schedule.employee.full_name }}</span>
+                            <span class="employee-code">{{ schedule.employee.employee_code }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="day-badge day-{{ schedule.day_of_week }}">
+                            {% if schedule.day_of_week == 0 %}Monday
+                            {% elif schedule.day_of_week == 1 %}Tuesday
+                            {% elif schedule.day_of_week == 2 %}Wednesday
+                            {% elif schedule.day_of_week == 3 %}Thursday
+                            {% elif schedule.day_of_week == 4 %}Friday
+                            {% elif schedule.day_of_week == 5 %}Saturday
+                            {% else %}Sunday{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ schedule.start_time.strftime('%H:%M') }}</td>
+                    <td>{{ schedule.end_time.strftime('%H:%M') }}</td>
+                    <td>
+                        {% set duration = ((schedule.end_time.hour * 60 + schedule.end_time.minute) - (schedule.start_time.hour * 60 + schedule.start_time.minute)) %}
+                        {{ duration // 60 }}h {{ duration % 60 }}m
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('schedules_delete', id=schedule.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this schedule?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-calendar fa-3x mb-3"></i>
+                        <p>No schedules found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Weekly Calendar View -->
+<div class="calendar-card mt-4">
+    <div class="card-header">
+        <h3><i class="fas fa-calendar-week"></i> Weekly Calendar</h3>
+    </div>
+    <div class="calendar-grid">
+        {% for day_num in range(7) %}
+        <div class="calendar-day">
+            <div class="day-header">
+                {% if day_num == 0 %}Monday
+                {% elif day_num == 1 %}Tuesday
+                {% elif day_num == 2 %}Wednesday
+                {% elif day_num == 3 %}Thursday
+                {% elif day_num == 4 %}Friday
+                {% elif day_num == 5 %}Saturday
+                {% else %}Sunday{% endif %}
+            </div>
+            <div class="day-content">
+                {% for schedule in schedules if schedule.day_of_week == day_num %}
+                <div class="schedule-item">
+                    <span class="schedule-time">{{ schedule.start_time.strftime('%H:%M') }} - {{ schedule.end_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-employee">{{ schedule.employee.first_name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

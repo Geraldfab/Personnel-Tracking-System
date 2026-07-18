@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Add Schedule - PersonnelHub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-clock"></i> Add Work Schedule</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('schedules_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="POST" class="schedule-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="employee_id">{{ form.employee_id.label.text }} <span class="required">*</span></label>
+            {{ form.employee_id(class="form-select") }}
+            {% if form.employee_id.errors %}
+            <div class="text-danger">{{ form.employee_id.errors[0] }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="day_of_week">{{ form.day_of_week.label.text }} <span class="required">*</span></label>
+            {{ form.day_of_week(class="form-select") }}
+            {% if form.day_of_week.errors %}
+            <div class="text-danger">{{ form.day_of_week.errors[0] }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="start_time">{{ form.start_time.label.text }} <span class="required">*</span></label>
+                    {{ form.start_time(class="form-control", type="time") }}
+                    {% if form.start_time.errors %}
+                    <div class="text-danger">{{ form.start_time.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="end_time">{{ form.end_time.label.text }} <span class="required">*</span></label>
+                    {{ form.end_time(class="form-control", type="time") }}
+                    {% if form.end_time.errors %}
+                    <div class="text-danger">{{ form.end_time.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Schedule
+            </button>
+            <a href="{{ url_for('schedules_list') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
