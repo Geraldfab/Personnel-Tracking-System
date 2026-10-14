@@ -1,0 +1,16 @@
+{
+  "short_name": "TechCore IT",
+  "name": "TechCore IT Personnel Tracking System",
+  "icons": [
+    {
+      "src": "/static/img/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b0f19",
+  "theme_color": "#06b6d4",
+  "display": "standalone",
+  "orientation": "portrait"
+}

@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Digital ID Card - {{ emp.full_name }}{% endblock %}
+
+{% block content %}
+<div class="no-print" style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+    <a href="{{ url_for('personnel') }}" style="color: var(--accent-cyan); text-decoration: none; font-weight: 500; font-size: 0.9rem;">
+        &larr; Back to Personnel Directory
+    </a>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button onclick="flipDigitalCard()" class="btn-outline-tech" id="btnFlipCard" style="padding: 0.45rem 1rem; font-size: 0.85rem;" title="Flip between Front and Back">
+            <i class="fa-solid fa-rotate"></i> Flip Card
+        </button>
+        <button onclick="window.print()" class="btn-tech" style="padding: 0.45rem 1rem; font-size: 0.85rem;" title="Print CR80 Format Badge">
+            <i class="fa-solid fa-print"></i> Print Digital ID Card
+        </button>
+    </div>
+</div>
+
+<div class="glass-panel" style="padding: 2rem 1rem; text-align: center; margin-bottom: 2rem;">
+    <div class="no-print" style="margin-bottom: 1.25rem;">
+        <h1 style="font-size: 1.35rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.35rem;">
+            <i class="fa-solid fa-id-card text-info me-2"></i> TECHCORE PERSONNEL DIGITAL ID CARD
+        </h1>
+        <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 650px; margin: 0 auto;">
+            Official ISO/IEC 7810 ID-1 (CR80 Standard: 85.6mm &times; 53.98mm) Digital Identity Badge with Embedded NFC Smart Chip & Verification QR
+        </p>
+    </div>
+
+    <!-- Mode Switcher Tabs -->
+    <div class="digital-id-scene-wrapper" id="digitalIdWrapper">
+        <div class="digital-id-mode-tabs no-print">
+            <button type="button" class="digital-id-tab-btn active" id="tabFront" onclick="setCardMode('front')">
+                <i class="fa-solid fa-id-card"></i> Front Side
+            </button>
+            <button type="button" class="digital-id-tab-btn" id="tabBack" onclick="setCardMode('back')">
+                <i class="fa-solid fa-barcode"></i> Back Side
+            </button>
+            <button type="button" class="digital-id-tab-btn" id="tabBoth" onclick="setCardMode('both')">
+                <i class="fa-solid fa-table-columns"></i> Side-by-Side (Both Sides)
+            </button>
+        </div>
+
+        <!-- Single 3D Flip Card Container -->
+        <div class="digital-id-card-stage" id="digitalIdStage" onclick="flipDigitalCard()" title="Click to flip card">
+            <!-- Front Face -->
+            <div class="digital-id-face digital-id-front">
+                <!-- Header -->
+                <div class="digital-id-header">
+                    <div class="digital-id-crest">
+                        <i class="fa-solid fa-id-badge"></i>
+                    </div>
+                    <div class="digital-id-header-text">
+                        <div class="digital-id-org-name">TECHCORE IT SOLUTIONS &bull; SECURE IDENTITY</div>
+                        <div class="digital-id-main-title">OFFICIAL DIGITAL ID</div>
+                    </div>
+                    <div class="digital-id-contactless">
+                        <i class="fa-solid fa-wifi" style="transform: rotate(90deg);" title="Contactless NFC Enabled"></i>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="digital-id-body">
+                    <img src="{{ emp.avatar_url }}" alt="{{ emp.full_name }}" class="digital-id-photo-box">
+
+                    <div class="digital-id-details">
+                        <div>
+                            <span class="digital-id-code-badge">{{ emp.emp_code }}</span>
+                        </div>
+                        <div class="digital-id-name">{{ emp.full_name }}</div>
+                        <div class="digital-id-role">{{ emp.role }}</div>
+                        <div class="digital-id-meta-item">
+                            <i class="fa-solid fa-layer-group"></i> {{ emp.department }}
+                        </div>
+                        <div class="digital-id-meta-item">
+                            <i class="fa-solid fa-clock"></i> {{ emp.schedule_name or 'Regular Shift' }} ({{ emp.start_time or '08:00' }} - {{ emp.end_time or '17:00' }})
+                        </div>
+                        <div class="digital-id-meta-item" style="color: var(--accent-cyan); font-weight: 600;">
+                            <i class="fa-solid fa-shield-halved"></i> SECURITY CLEARANCE L2 &bull; ACTIVE
+                        </div>
+                    </div>
+
+                    <div class="digital-id-qr-box">
+                        <img src="{{ qr_url }}" alt="Digital ID QR Code">
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="digital-id-footer">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="digital-id-smart-chip" title="EMV / NFC Smart Chip"></div>
+                        <span style="letter-spacing: 0.5px;">SMART NFC SECURE ENCLAVE</span>
+                    </div>
+                    <div>
+                        <span>ISSUED: {{ emp.join_date or '2024-01-01' }} &bull; PERMANENT</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Face -->
+            <div class="digital-id-face digital-id-back">
+                <!-- Magnetic Stripe -->
+                <div class="digital-id-magstripe"></div>
+
+                <!-- Back Content -->
+                <div class="digital-id-back-content">
+                    <div class="digital-id-back-qr">
+                        <img src="{{ qr_url }}" alt="Digital ID Verification QR">
+                    </div>
+
+                    <div class="digital-id-back-info">
+                        <div class="digital-id-terms-title">
+                            <i class="fa-solid fa-circle-info me-1"></i> IDENTIFICATION POLICY & ACCESS
+                        </div>
+                        <div class="digital-id-terms-text">
+                            This digital credential remains the property of TechCore IT Solutions. It is issued for official employee identification, touchless QR attendance tracking, and authorized physical access to labs and data centers.
+                        </div>
+                        <div class="digital-id-terms-text" style="color: #cbd5e1;">
+                            <strong>Support / Lost Card:</strong> {{ emp.phone }} | {{ emp.email }}
+                        </div>
+                        
+                        <!-- Barcode Representation -->
+                        <div class="digital-id-barcode-box">
+                            <div class="digital-id-barcode-graphic"></div>
+                            <div class="digital-id-barcode-num">* {{ emp.emp_code }} *</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Back Footer -->
+                <div class="digital-id-back-footer">
+                    AUTHORIZED PERSONNEL ONLY &bull; ISO/IEC 7810 ID-1 &bull; PROPERTY OF TECHCORE IT
+                </div>
+            </div>
+        </div>
+
+        <!-- Dual Side-by-Side View (Active in Both Sides Mode & Clean Printing) -->
+        <div class="digital-id-dual-view" id="digitalIdDualView">
+            <!-- Front Clone -->
+            <div class="digital-id-face digital-id-front" style="position: relative;">
+                <div class="digital-id-header">
+                    <div class="digital-id-crest">
+                        <i class="fa-solid fa-id-badge"></i>
+                    </div>
+                    <div class="digital-id-header-text">
+                        <div class="digital-id-org-name">TECHCORE IT SOLUTIONS &bull; SECURE IDENTITY</div>
+                        <div class="digital-id-main-title">OFFICIAL DIGITAL ID</div>
+                    </div>
+                    <div class="digital-id-contactless">
+                        <i class="fa-solid fa-wifi" style="transform: rotate(90deg);" title="Contactless NFC Enabled"></i>
+                    </div>
+                </div>
+
+                <div class="digital-id-body">
+                    <img src="{{ emp.avatar_url }}" alt="{{ emp.full_name }}" class="digital-id-photo-box">
+
+                    <div class="digital-id-details">
+                        <div>
+                            <span class="digital-id-code-badge">{{ emp.emp_code }}</span>
+                        </div>
+                        <div class="digital-id-name">{{ emp.full_name }}</div>
+                        <div class="digital-id-role">{{ emp.role }}</div>
+                        <div class="digital-id-meta-item">
+                            <i class="fa-solid fa-layer-group"></i> {{ emp.department }}
+                        </div>
+                        <div class="digital-id-meta-item">
+                            <i class="fa-solid fa-clock"></i> {{ emp.schedule_name or 'Regular Shift' }} ({{ emp.start_time or '08:00' }} - {{ emp.end_time or '17:00' }})
+                        </div>
+                        <div class="digital-id-meta-item" style="color: var(--accent-cyan); font-weight: 600;">
+                            <i class="fa-solid fa-shield-halved"></i> SECURITY CLEARANCE L2 &bull; ACTIVE
+                        </div>
+                    </div>
+
+                    <div class="digital-id-qr-box">
+                        <img src="{{ qr_url }}" alt="Digital ID QR Code">
+                    </div>
+                </div>
+
+                <div class="digital-id-footer">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="digital-id-smart-chip" title="EMV / NFC Smart Chip"></div>
+                        <span style="letter-spacing: 0.5px;">SMART NFC SECURE ENCLAVE</span>
+                    </div>
+                    <div>
+                        <span>ISSUED: {{ emp.join_date or '2024-01-01' }} &bull; PERMANENT</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Clone -->
+            <div class="digital-id-face digital-id-back" style="position: relative; transform: none;">
+                <div class="digital-id-magstripe"></div>
+
+                <div class="digital-id-back-content">
+                    <div class="digital-id-back-qr">
+                        <img src="{{ qr_url }}" alt="Digital ID Verification QR">
+                    </div>
+
+                    <div class="digital-id-back-info">
+                        <div class="digital-id-terms-title">
+                            <i class="fa-solid fa-circle-info me-1"></i> IDENTIFICATION POLICY & ACCESS
+                        </div>
+                        <div class="digital-id-terms-text">
+                            This digital credential remains the property of TechCore IT Solutions. It is issued for official employee identification, touchless QR attendance tracking, and authorized physical access to labs and data centers.
+                        </div>
+                        <div class="digital-id-terms-text" style="color: #cbd5e1;">
+                            <strong>Support / Lost Card:</strong> {{ emp.phone }} | {{ emp.email }}
+                        </div>
+                        
+                        <div class="digital-id-barcode-box">
+                            <div class="digital-id-barcode-graphic"></div>
+                            <div class="digital-id-barcode-num">* {{ emp.emp_code }} *</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="digital-id-back-footer">
+                    AUTHORIZED PERSONNEL ONLY &bull; ISO/IEC 7810 ID-1 &bull; PROPERTY OF TECHCORE IT
+                </div>
+            </div>
+        </div>
+
+        <p class="no-print" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">
+            <i class="fa-solid fa-hand-pointer me-1"></i> Click on card to flip between Front and Back views.
+        </p>
+    </div>
+
+    <!-- Action Toolbar -->
+    <div class="no-print" style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+        <a href="{{ qr_url }}" download="Digital_ID_QR_{{ emp.emp_code }}.png" class="btn-outline-tech" style="font-size: 0.85rem;">
+            <i class="fa-solid fa-download"></i> Download QR Image
+        </a>
+        <a href="{{ url_for('employee_detail', emp_id=emp.id) }}" class="btn-outline-tech" style="font-size: 0.85rem;">
+            <i class="fa-solid fa-user me-1"></i> View Full Personnel Profile
+        </a>
+    </div>
+</div>
+
+<script>
+let isCardFlipped = false;
+
+function flipDigitalCard() {
+    const stage = document.getElementById('digitalIdStage');
+    const wrapper = document.getElementById('digitalIdWrapper');
+    
+    // If currently in dual-view (both sides), switch to single card view first
+    if (wrapper.classList.contains('show-both')) {
+        wrapper.classList.remove('show-both');
+    }
+    
+    isCardFlipped = !isCardFlipped;
+    if (isCardFlipped) {
+        stage.classList.add('is-flipped');
+        document.getElementById('tabBack').classList.add('active');
+        document.getElementById('tabFront').classList.remove('active');
+        document.getElementById('tabBoth').classList.remove('active');
+    } else {
+        stage.classList.remove('is-flipped');
+        document.getElementById('tabFront').classList.add('active');
+        document.getElementById('tabBack').classList.remove('active');
+        document.getElementById('tabBoth').classList.remove('active');
+    }
+}
+
+function setCardMode(mode) {
+    const stage = document.getElementById('digitalIdStage');
+    const wrapper = document.getElementById('digitalIdWrapper');
+    const tabFront = document.getElementById('tabFront');
+    const tabBack = document.getElementById('tabBack');
+    const tabBoth = document.getElementById('tabBoth');
+
+    tabFront.classList.remove('active');
+    tabBack.classList.remove('active');
+    tabBoth.classList.remove('active');
+
+    if (mode === 'front') {
+        wrapper.classList.remove('show-both');
+        stage.classList.remove('is-flipped');
+        isCardFlipped = false;
+        tabFront.classList.add('active');
+    } else if (mode === 'back') {
+        wrapper.classList.remove('show-both');
+        stage.classList.add('is-flipped');
+        isCardFlipped = true;
+        tabBack.classList.add('active');
+    } else if (mode === 'both') {
+        wrapper.classList.add('show-both');
+        tabBoth.classList.add('active');
+    }
+}
+</script>
+{% endblock %}

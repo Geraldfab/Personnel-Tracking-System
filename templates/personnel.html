@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Personnel Directory | TechCore Tracker{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-users text-info"></i> IT Personnel Directory
+        </h1>
+        <p class="page-subtitle">Centralized workforce management, shift schedules & Digital ID cards</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <!-- View Mode Switcher -->
+        <div class="view-mode-toggle" title="Switch Display Layout">
+            <button type="button" id="viewGridBtn" class="view-btn active" onclick="setPersonnelView('grid')" title="Card Grid View">
+                <i class="fa-solid fa-table-cells-large"></i>
+            </button>
+            <button type="button" id="viewTableBtn" class="view-btn" onclick="setPersonnelView('table')" title="List Roster View">
+                <i class="fa-solid fa-list-ul"></i>
+            </button>
+        </div>
+
+        <a href="{{ url_for('export_personnel_pdf') }}" class="btn-outline-tech" style="height: 38px; min-height: 38px; padding: 0.4rem 0.8rem; font-size: 0.82rem;">
+            <i class="fa-solid fa-file-pdf text-danger me-1"></i> Export PDF Roster
+        </a>
+
+        {% if is_admin %}
+            <button class="btn-tech" onclick="openModal('addEmployeeModal')" style="height: 38px; min-height: 38px; padding: 0.4rem 0.9rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-user-plus me-1"></i> Add New Personnel
+            </button>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn-outline-tech" style="height: 38px; min-height: 38px; padding: 0.4rem 0.8rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-lock me-1"></i> Admin Login to Add
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Personnel Stats Summary Row -->
+<div class="personnel-stats-row">
+    <div class="personnel-stat-card">
+        <div>
+            <div class="personnel-stat-num">{{ total_count }}</div>
+            <div class="personnel-stat-label">Total Workforce</div>
+        </div>
+        <i class="fa-solid fa-id-badge text-info" style="font-size: 1.4rem; opacity: 0.8;"></i>
+    </div>
+    <div class="personnel-stat-card">
+        <div>
+            <div class="personnel-stat-num" style="color: #10b981;">{{ in_office_count }}</div>
+            <div class="personnel-stat-label">In Office</div>
+        </div>
+        <i class="fa-solid fa-building text-success" style="font-size: 1.4rem; opacity: 0.8;"></i>
+    </div>
+    <div class="personnel-stat-card">
+        <div>
+            <div class="personnel-stat-num" style="color: #ef4444;">{{ late_count }}</div>
+            <div class="personnel-stat-label">Late Today</div>
+        </div>
+        <i class="fa-solid fa-clock text-danger" style="font-size: 1.4rem; opacity: 0.8;"></i>
+    </div>
+    <div class="personnel-stat-card">
+        <div>
+            <div class="personnel-stat-num" style="color: #f59e0b;">{{ remote_count }}</div>
+            <div class="personnel-stat-label">Remote / WFH</div>
+        </div>
+        <i class="fa-solid fa-house-laptop text-warning" style="font-size: 1.4rem; opacity: 0.8;"></i>
+    </div>
+    <div class="personnel-stat-card">
+        <div>
+            <div class="personnel-stat-num" style="color: #8b5cf6;">{{ leave_count }}</div>
+            <div class="personnel-stat-label">On Leave</div>
+        </div>
+        <i class="fa-solid fa-calendar-minus" style="font-size: 1.4rem; color: #8b5cf6; opacity: 0.8;"></i>
+    </div>
+</div>
+
+<!-- Unified Search & Filter Control Panel -->
+<div class="glass-panel personnel-filter-panel">
+    <form method="GET" action="{{ url_for('personnel') }}" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div class="personnel-filter-top">
+            <!-- Search Input -->
+            <div class="personnel-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="search" class="form-input personnel-search-input" placeholder="Search name, code (IT-...), role, email..." value="{{ search_query }}">
+            </div>
+
+            <!-- Department Dropdown -->
+            <select name="department" class="form-select personnel-select-filter" onchange="this.form.submit()">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                    <option value="{{ dept.department }}" {% if selected_dept == dept.department %}selected{% endif %}>
+                        {{ dept.department }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <!-- Status Dropdown -->
+            <select name="status" class="form-select personnel-select-filter" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                {% for st in statuses %}
+                    <option value="{{ st }}" {% if selected_status == st %}selected{% endif %}>
+                        {{ st }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <!-- Sort Dropdown -->
+            <select name="sort" class="form-select personnel-select-filter" onchange="this.form.submit()">
+                <option value="code_asc" {% if sort_by == 'code_asc' %}selected{% endif %}>Sort by Code</option>
+                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="name_desc" {% if sort_by == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="dept_asc" {% if sort_by == 'dept_asc' %}selected{% endif %}>Department</option>
+                <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+            </select>
+
+            <!-- Action Buttons -->
+            <button type="submit" class="btn-tech" style="height: 38px; min-height: 38px; padding: 0.4rem 0.9rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-filter me-1"></i> Filter
+            </button>
+            {% if search_query or selected_dept or selected_status or sort_by != 'code_asc' %}
+                <a href="{{ url_for('personnel') }}" class="btn-outline-tech" style="height: 38px; min-height: 38px; padding: 0.4rem 0.8rem; font-size: 0.82rem;" title="Reset All Filters">
+                    <i class="fa-solid fa-rotate-left me-1"></i> Reset
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Quick Department Pills -->
+        <div class="scroll-filters" style="margin-bottom: 0; padding-top: 0.25rem;">
+            <a href="{{ url_for('personnel', status=selected_status, search=search_query, sort=sort_by) }}" class="filter-pill {% if not selected_dept %}active{% endif %}">
+                All ({{ total_count }})
+            </a>
+            {% for dept in departments %}
+                <a href="{{ url_for('personnel', department=dept.department, status=selected_status, search=search_query, sort=sort_by) }}" class="filter-pill {% if selected_dept == dept.department %}active{% endif %}">
+                    {{ dept.department }}
+                </a>
+            {% endfor %}
+        </div>
+    </form>
+</div>
+
+<!-- Personnel Content View -->
+{% if employees %}
+    <!-- 1. Structured Card Grid View -->
+    <div id="personnelGridView" class="personnel-grid">
+        {% for emp in employees %}
+            <div class="glass-panel employee-card">
+                <!-- Header -->
+                <div class="emp-card-header">
+                    <div class="emp-avatar-wrapper">
+                        <img src="{{ emp.avatar_url }}" alt="{{ emp.full_name }}" class="emp-avatar">
+                        <span class="emp-avatar-dot" style="background: {% if emp.status == 'In Office' %}#10b981{% elif emp.status == 'In Office (Late)' %}#ef4444{% elif emp.status == 'Remote' %}#f59e0b{% elif emp.status == 'In Meeting' %}#8b5cf6{% elif emp.status == 'On Leave' %}#ef4444{% else %}#64748b{% endif %};"></span>
+                    </div>
+                    <div class="emp-info">
+                        <div class="emp-info-top">
+                            <span class="emp-name" title="{{ emp.full_name }}">{{ emp.full_name }}</span>
+                            <span class="emp-code-pill">{{ emp.emp_code }}</span>
+                        </div>
+                        <div class="emp-role">{{ emp.role }}</div>
+                        <div class="emp-dept-badge">
+                            <i class="fa-solid fa-folder text-info me-1"></i> {{ emp.department }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Structured Meta Details -->
+                <div class="emp-meta-details">
+                    <div class="emp-meta-item">
+                        <i class="fa-solid fa-clock text-info"></i>
+                        <span>Shift: <strong>{{ emp.schedule_name if emp.schedule_name else 'Regular Day Shift' }}</strong></span>
+                    </div>
+                    <div class="emp-meta-item">
+                        <i class="fa-solid fa-location-dot text-info"></i>
+                        <span>Node: {{ emp.location_name }}</span>
+                    </div>
+                    <div class="emp-meta-item">
+                        <i class="fa-solid fa-envelope text-muted"></i>
+                        <span title="{{ emp.email }}">{{ emp.email }}</span>
+                    </div>
+                    {% if emp.phone %}
+                    <div class="emp-meta-item">
+                        <i class="fa-solid fa-phone text-muted"></i>
+                        <span>{{ emp.phone }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Footer with Status Badge and Clean Actions -->
+                <div class="emp-card-footer">
+                    <div>
+                        {% if emp.status == 'In Office' %}
+                            <span class="status-badge status-in-office"><span class="status-dot pulse"></span> In Office</span>
+                        {% elif emp.status == 'In Office (Late)' %}
+                            <span class="status-badge status-on-leave" style="background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #ef4444;"><span class="status-dot" style="background: #ef4444;"></span> Late</span>
+                        {% elif emp.status == 'Remote' %}
+                            <span class="status-badge status-remote"><span class="status-dot"></span> Remote</span>
+                        {% elif emp.status == 'In Meeting' %}
+                            <span class="status-badge status-meeting"><span class="status-dot"></span> In Meeting</span>
+                        {% elif emp.status == 'On Leave' %}
+                            <span class="status-badge status-on-leave"><span class="status-dot"></span> On Leave</span>
+                        {% else %}
+                            <span class="status-badge status-out"><span class="status-dot"></span> {{ emp.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="emp-action-btns">
+                        <a href="{{ url_for('employee_id_card', emp_id=emp.id) }}" class="btn-card-action" title="View Digital ID Card">
+                            <i class="fa-solid fa-id-card text-info"></i> Digital ID
+                        </a>
+                        <a href="{{ url_for('employee_detail', emp_id=emp.id) }}" class="btn-card-action" title="View Personnel Profile & Logs">
+                            <i class="fa-solid fa-user"></i> Details
+                        </a>
+                        {% if is_admin %}
+                            <form method="POST" action="{{ url_for('api_delete_employee', emp_id=emp.id) }}" style="display: inline;" onsubmit="return confirm('Permanently remove personnel {{ emp.full_name }} ({{ emp.emp_code }})?');">
+                                <button type="submit" class="btn-card-action btn-del" title="Delete Personnel">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- 2. Structured Table / List View (Hidden by default, toggled via switcher) -->
+    <div id="personnelTableView" class="glass-panel personnel-table-card" style="display: none;">
+        <div class="tech-table-wrapper">
+            <table class="tech-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Personnel</th>
+                        <th>Role & Department</th>
+                        <th>Work Shift</th>
+                        <th>Status</th>
+                        <th>Location Node</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                        <tr>
+                            <td>
+                                <span class="emp-code-pill">{{ emp.emp_code }}</span>
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                    <img src="{{ emp.avatar_url }}" alt="{{ emp.full_name }}" style="width: 34px; height: 34px; border-radius: 8px; object-fit: cover;">
+                                    <div>
+                                        <div style="font-weight: 700; color: var(--text-heading);">{{ emp.full_name }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ emp.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--accent-cyan); font-size: 0.85rem;">{{ emp.role }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ emp.department }}</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.82rem; color: var(--text-heading);">
+                                    <i class="fa-solid fa-clock text-info me-1"></i> {{ emp.schedule_name if emp.schedule_name else 'Regular Day Shift' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if emp.status == 'In Office' %}
+                                    <span class="status-badge status-in-office"><span class="status-dot pulse"></span> In Office</span>
+                                {% elif emp.status == 'In Office (Late)' %}
+                                    <span class="status-badge status-on-leave" style="background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #ef4444;"><span class="status-dot" style="background: #ef4444;"></span> Late</span>
+                                {% elif emp.status == 'Remote' %}
+                                    <span class="status-badge status-remote"><span class="status-dot"></span> Remote</span>
+                                {% elif emp.status == 'In Meeting' %}
+                                    <span class="status-badge status-meeting"><span class="status-dot"></span> In Meeting</span>
+                                {% elif emp.status == 'On Leave' %}
+                                    <span class="status-badge status-on-leave"><span class="status-dot"></span> On Leave</span>
+                                {% else %}
+                                    <span class="status-badge status-out"><span class="status-dot"></span> {{ emp.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="font-size: 0.82rem; color: var(--text-muted);">
+                                    <i class="fa-solid fa-location-dot text-info me-1"></i> {{ emp.location_name }}
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="emp-action-btns" style="justify-content: flex-end;">
+                                    <a href="{{ url_for('employee_id_card', emp_id=emp.id) }}" class="btn-card-action" title="View Digital ID Card">
+                                        <i class="fa-solid fa-id-card text-info"></i>
+                                    </a>
+                                    <a href="{{ url_for('employee_detail', emp_id=emp.id) }}" class="btn-card-action" title="Details">
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </a>
+                                    {% if is_admin %}
+                                        <form method="POST" action="{{ url_for('api_delete_employee', emp_id=emp.id) }}" style="display: inline;" onsubmit="return confirm('Permanently remove {{ emp.full_name }} ({{ emp.emp_code }})?');">
+                                            <button type="submit" class="btn-card-action btn-del" title="Delete">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="glass-panel" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <i class="fa-solid fa-user-slash" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent-cyan);"></i>
+        <h3>No personnel match the current filters</h3>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Try clearing your search terms or filter selections.</p>
+        <a href="{{ url_for('personnel') }}" class="btn-tech" style="margin-top: 1rem;">Reset Filters</a>
+    </div>
+{% endif %}
+
+<!-- Modal: Add New Employee -->
+{% if is_admin %}
+<div id="addEmployeeModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fa-solid fa-user-plus text-info"></i> Register New Personnel & Digital ID
+            </div>
+            <button class="modal-close" onclick="closeModal('addEmployeeModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <form method="POST" action="{{ url_for('api_add_employee') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">Full Name *</label>
+                <input type="text" name="full_name" class="form-input" placeholder="e.g. Jordan Miller" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Work Email *</label>
+                <input type="email" name="email" class="form-input" placeholder="jordan.m@techcore.io" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Phone Contact *</label>
+                <input type="text" name="phone" class="form-input" placeholder="+1 (555) 019-2834" required>
+            </div>
+
+            <div class="form-group" style="background: rgba(6, 182, 212, 0.05); padding: 0.85rem; border: 1px dashed var(--border-glow); border-radius: var(--radius-sm);">
+                <label class="form-label" style="color: var(--accent-cyan); display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-camera"></i> Digital ID Profile Photo Upload (Local File)
+                </label>
+                <input type="file" name="avatar_file" class="form-input" accept="image/*" style="padding: 0.4rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                    Supported formats: PNG, JPG, JPEG, WEBP.
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                    <label class="form-label">Department *</label>
+                    <select name="department" class="form-select" required>
+                        <option value="DevOps & Infrastructure">DevOps & Infra</option>
+                        <option value="Software Engineering">Software Eng</option>
+                        <option value="Cybersecurity">Cybersecurity</option>
+                        <option value="Cloud & Data">Cloud & Data</option>
+                        <option value="IT Support & Ops">IT Support</option>
+                        <option value="QA & Testing">QA & Testing</option>
+                        <option value="Product & Management">Management</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Job Role *</label>
+                    <input type="text" name="role" class="form-input" placeholder="e.g. SRE Engineer" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                    <label class="form-label">Initial Status</label>
+                    <select name="status" class="form-select">
+                        <option value="In Office">In Office</option>
+                        <option value="Remote">Remote</option>
+                        <option value="In Meeting">In Meeting</option>
+                        <option value="Out of Office">Out of Office</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Assign Work Shift</label>
+                    <select name="schedule_id" class="form-select">
+                        {% if schedules %}
+                            {% for sched in schedules %}
+                                <option value="{{ sched.id }}">{{ sched.name }} ({{ sched.start_time }} - {{ sched.end_time }})</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="1">Regular Day Shift (08:00 - 17:00)</option>
+                            <option value="2">Night Shift Operations (22:00 - 07:00)</option>
+                            <option value="3">Flexible WFH Shift (09:00 - 18:00)</option>
+                            <option value="4">24/7 Security Rotation</option>
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Default Location Node</label>
+                <input type="text" name="location_name" class="form-input" placeholder="Headquarters - Main IT Lab" value="Headquarters - Main IT Lab">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Bio / Tech Expertise</label>
+                <textarea name="bio" class="form-textarea" rows="2" placeholder="Summary of technical domain..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                <button type="button" class="btn-outline-tech" onclick="closeModal('addEmployeeModal')" style="flex: 1;">Cancel</button>
+                <button type="submit" class="btn-tech" style="flex: 2;">
+                    <i class="fa-solid fa-check"></i> Register & Generate Digital ID
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

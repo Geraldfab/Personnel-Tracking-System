@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Work Schedules & Shift Management | TechCore Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-calendar-days text-info"></i> Work Schedule & Shift Management
+        </h1>
+        <p class="page-subtitle">Configure IT operational shifts, work hours, and assign personnel schedules</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% if is_admin %}
+            <button class="btn-tech" onclick="openModal('addScheduleModal')">
+                <i class="fa-solid fa-plus-circle"></i> Create New Shift
+            </button>
+            <button class="btn-outline-tech" onclick="openModal('assignScheduleModal')">
+                <i class="fa-solid fa-user-gear"></i> Assign Shift to Employee
+            </button>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn-outline-tech">
+                <i class="fa-solid fa-lock me-1"></i> Admin Login to Edit Shifts
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Active Shifts Overview Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    {% for s in schedules %}
+        <div class="glass-panel" style="padding: 1.2rem; border-top: 3px solid var(--accent-cyan);">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.5rem;">
+                <div style="font-weight: 700; color: var(--text-heading); font-size: 1.05rem;">{{ s.name }}</div>
+                <span class="status-badge status-in-office" style="font-size: 0.7rem; padding: 2px 8px;">
+                    {{ s.work_days }}
+                </span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; color: var(--accent-cyan); margin-bottom: 0.5rem;">
+                <i class="fa-regular fa-clock me-1"></i> {{ s.start_time }} &ndash; {{ s.end_time }}
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                {{ s.description if s.description else 'Standard company work shift schedule' }}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Personnel Schedule Assignment Roster Table -->
+<div class="glass-panel" style="padding: 1.25rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-user-clock text-info"></i> Employee Shift Assignments
+        </h2>
+        <a href="{{ url_for('export_personnel_pdf') }}" class="btn-outline-tech" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;">
+            <i class="fa-solid fa-file-pdf text-danger me-1"></i> Export Schedule PDF
+        </a>
+    </div>
+
+    <div class="tech-table-wrapper">
+        <table class="tech-table">
+            <thead>
+                <tr>
+                    <th>Personnel</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Assigned Shift Schedule</th>
+                    <th>Shift Hours</th>
+                    {% if is_admin %}
+                        <th>Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if employees %}
+                    {% for emp in employees %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                    <img src="{{ emp.avatar_url }}" alt="{{ emp.full_name }}" style="width: 34px; height: 34px; border-radius: 10px; object-fit: cover;">
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-heading);">{{ emp.full_name }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ emp.emp_code }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span style="font-size: 0.82rem; color: var(--accent-cyan);">{{ emp.role }}</span></td>
+                            <td><span style="font-size: 0.82rem; color: var(--text-muted);">{{ emp.department }}</span></td>
+                            <td>
+                                {% if emp.status == 'In Office' %}
+                                    <span class="status-badge status-in-office"><span class="status-dot pulse"></span> In Office</span>
+                                {% elif emp.status == 'Remote' %}
+                                    <span class="status-badge status-remote"><span class="status-dot"></span> Remote</span>
+                                {% else %}
+                                    <span class="status-badge status-out"><span class="status-dot"></span> {{ emp.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong style="color: var(--text-heading);">
+                                    <i class="fa-solid fa-calendar-check text-info me-1"></i> {{ emp.schedule_name if emp.schedule_name else 'Regular Day Shift' }}
+                                </strong>
+                            </td>
+                            <td>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">
+                                    {{ emp.start_time if emp.start_time else '08:00' }} &ndash; {{ emp.end_time if emp.end_time else '17:00' }}
+                                </span>
+                            </td>
+                            {% if is_admin %}
+                                <td>
+                                    <button class="btn-outline-tech" onclick="quickAssignShift('{{ emp.id }}', '{{ emp.full_name }}')" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; min-height: 28px;">
+                                        <i class="fa-solid fa-pen me-1"></i> Change
+                                    </button>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            No personnel records found.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Create New Work Shift -->
+{% if is_admin %}
+<div id="addScheduleModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fa-solid fa-plus-circle text-info"></i> Create New Work Shift
+            </div>
+            <button class="modal-close" onclick="closeModal('addScheduleModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <form method="POST" action="{{ url_for('api_add_schedule') }}">
+            <div class="form-group">
+                <label class="form-label">Shift Name *</label>
+                <input type="text" name="name" class="form-input" placeholder="e.g. Afternoon Security Shift" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                    <label class="form-label">Start Time *</label>
+                    <input type="time" name="start_time" class="form-input" required value="08:00">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">End Time *</label>
+                    <input type="time" name="end_time" class="form-input" required value="17:00">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Working Days</label>
+                <select name="work_days" class="form-select">
+                    <option value="Mon-Fri">Monday to Friday</option>
+                    <option value="Mon-Sat">Monday to Saturday</option>
+                    <option value="Weekend">Saturday & Sunday</option>
+                    <option value="Rotational 24/7">Rotational / Shift Work</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description / Operational Notes</label>
+                <textarea name="description" class="form-textarea" rows="2" placeholder="Shift coverage details..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                <button type="button" class="btn-outline-tech" onclick="closeModal('addScheduleModal')" style="flex: 1;">Cancel</button>
+                <button type="submit" class="btn-tech" style="flex: 2;">
+                    <i class="fa-solid fa-check"></i> Create Shift
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Assign Shift to Employee -->
+<div id="assignScheduleModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fa-solid fa-user-gear text-info"></i> Assign Shift Schedule
+            </div>
+            <button class="modal-close" onclick="closeModal('assignScheduleModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <form method="POST" action="{{ url_for('api_assign_schedule') }}">
+            <div class="form-group">
+                <label class="form-label">Select Employee *</label>
+                <select id="assignEmpIdSelect" name="emp_id" class="form-select" required>
+                    <option value="">-- Choose Team Member --</option>
+                    {% for emp in all_employees %}
+                        <option value="{{ emp.id }}">{{ emp.emp_code }} - {{ emp.full_name }} ({{ emp.role }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Target Work Shift *</label>
+                <select name="schedule_id" class="form-select" required>
+                    {% for s in schedules %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.start_time }} - {{ s.end_time }}, {{ s.work_days }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                <button type="button" class="btn-outline-tech" onclick="closeModal('assignScheduleModal')" style="flex: 1;">Cancel</button>
+                <button type="submit" class="btn-tech" style="flex: 2;">
+                    <i class="fa-solid fa-save"></i> Save Shift Assignment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function quickAssignShift(empId, empName) {
+    const select = document.getElementById('assignEmpIdSelect');
+    if (select) select.value = empId;
+    openModal('assignScheduleModal');
+}
+</script>
+{% endblock %}

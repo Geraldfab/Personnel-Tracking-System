@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | TechCore Personnel Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-server text-info"></i> IT Operations Dashboard
+        </h1>
+        <p class="page-subtitle">Real-time status tracking & location node monitor for small enterprise IT teams</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <form method="POST" action="{{ url_for('api_batch_4pm_checkout') }}" onsubmit="return confirm('Execute 4:00 PM Attendance-Out for all active personnel?');" style="display: inline;">
+            <button type="submit" class="btn-outline-tech" style="border-color: var(--status-leave); color: var(--status-leave);">
+                <i class="fa-solid fa-clock me-1"></i> 4:00 PM Shift Attendance-Out
+            </button>
+        </form>
+        <button class="btn-tech" onclick="openModal('checkinModal')">
+            <i class="fa-solid fa-location-arrow"></i> Attendance In / Out
+        </button>
+    </div>
+</div>
+
+<!-- KPI Metrics Grid -->
+<div class="metrics-grid">
+    <div class="glass-panel metric-card total">
+        <div class="metric-header">
+            <span>Total Team</span>
+            <div class="metric-icon" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan);">
+                <i class="fa-solid fa-users"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ total_staff }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">Active Personnel</div>
+    </div>
+
+    <div class="glass-panel metric-card office">
+        <div class="metric-header">
+            <span>In Office (HQ)</span>
+            <div class="metric-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--status-office);">
+                <i class="fa-solid fa-building-user"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ in_office }}</div>
+        <div class="status-badge status-in-office" style="font-size: 0.7rem; padding: 2px 8px; width: fit-content;">
+            <span class="status-dot pulse"></span> On-site Lab
+        </div>
+    </div>
+
+    <div class="glass-panel metric-card remote">
+        <div class="metric-header">
+            <span>Remote / WFH</span>
+            <div class="metric-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--status-remote);">
+                <i class="fa-solid fa-laptop-code"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ remote }}</div>
+        <div class="status-badge status-remote" style="font-size: 0.7rem; padding: 2px 8px; width: fit-content;">
+            <span class="status-dot"></span> Secure VPN
+        </div>
+    </div>
+
+    <div class="glass-panel metric-card leave">
+        <div class="metric-header">
+            <span>On Leave</span>
+            <div class="metric-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--status-leave);">
+                <i class="fa-solid fa-umbrella-beach"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ on_leave }}</div>
+        <div class="status-badge status-on-leave" style="font-size: 0.7rem; padding: 2px 8px; width: fit-content;">
+            <span class="status-dot"></span> Standby
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Recent Activity Feed -->
+    <div class="glass-panel" style="padding: 1.25rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-bolt text-warning"></i> Recent Personnel Node Logs
+            </h2>
+            <a href="{{ url_for('attendance') }}" style="color: var(--accent-cyan); font-size: 0.82rem; text-decoration: none;">View All Logs &rarr;</a>
+        </div>
+
+        <div class="tech-table-wrapper">
+            <table class="tech-table">
+                <thead>
+                    <tr>
+                        <th>Personnel</th>
+                        <th>Status</th>
+                        <th>Location / Node</th>
+                        <th>Timestamp</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_checkins %}
+                        {% for log in recent_checkins %}
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <img src="{{ log.avatar_url }}" alt="{{ log.full_name }}" style="width: 36px; height: 36px; border-radius: 10px; object-fit: cover;">
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--text-heading);">{{ log.full_name }}</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ log.emp_code }} &bull; {{ log.role }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if log.status == 'In Office' %}
+                                        <span class="status-badge status-in-office"><span class="status-dot pulse"></span> In Office</span>
+                                    {% elif log.status == 'Remote' %}
+                                        <span class="status-badge status-remote"><span class="status-dot"></span> Remote</span>
+                                    {% elif log.status == 'In Meeting' %}
+                                        <span class="status-badge status-meeting"><span class="status-dot"></span> In Meeting</span>
+                                    {% elif log.status == 'On Leave' %}
+                                        <span class="status-badge status-on-leave"><span class="status-dot"></span> On Leave</span>
+                                    {% else %}
+                                        <span class="status-badge status-out"><span class="status-dot"></span> {{ log.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;">
+                                        <i class="fa-solid fa-location-dot text-info"></i> {{ log.location_name }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">
+                                        {{ log.check_in_time }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                        {{ log.notes if log.notes else 'Routine ping' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                No attendance records found yet.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Department Status Breakdown Grid -->
+    <div class="glass-panel" style="padding: 1.25rem;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-heading); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-layer-group text-info"></i> Department Active Breakdown
+        </h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            {% for dept in dept_stats %}
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem;">
+                    <div style="font-weight: 700; color: var(--text-heading); font-size: 0.95rem; margin-bottom: 0.5rem;">
+                        {{ dept.department }}
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                        <span>Headcount: <strong>{{ dept.count }}</strong></span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 6px; border-radius: 4px;">
+                            {{ dept.active_office }} Office
+                        </span>
+                        <span style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px;">
+                            {{ dept.active_remote }} Remote
+                        </span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

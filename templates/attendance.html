@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Logs | TechCore Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-clock-rotate-left text-info"></i> Attendance & Location Logs
+        </h1>
+        <p class="page-subtitle">Real-time check-in stream & Android GPS location updates</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ url_for('export_attendance_pdf') }}" class="btn-outline-tech">
+            <i class="fa-solid fa-file-pdf text-danger me-1"></i> Export PDF Report
+        </a>
+        <button class="btn-tech" onclick="openModal('checkinModal')">
+            <i class="fa-solid fa-plus-circle"></i> Manual Check-In
+        </button>
+    </div>
+</div>
+
+<div class="glass-panel" style="padding: 1.25rem;">
+    <div class="tech-table-wrapper">
+        <table class="tech-table">
+            <thead>
+                <tr>
+                    <th>Personnel</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Node Location</th>
+                    <th>Verification</th>
+                    <th>Check-in Time</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for log in logs %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                    <img src="{{ log.avatar_url }}" alt="{{ log.full_name }}" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;">
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-heading);">{{ log.full_name }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ log.emp_code }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ log.department }}</span></td>
+                            <td>
+                                {% if log.status == 'In Office' %}
+                                    <span class="status-badge status-in-office"><span class="status-dot pulse"></span> In Office</span>
+                                {% elif log.status == 'Remote' %}
+                                    <span class="status-badge status-remote"><span class="status-dot"></span> Remote</span>
+                                {% elif log.status == 'In Meeting' %}
+                                    <span class="status-badge status-meeting"><span class="status-dot"></span> In Meeting</span>
+                                {% elif log.status == 'On Leave' %}
+                                    <span class="status-badge status-on-leave"><span class="status-dot"></span> On Leave</span>
+                                {% else %}
+                                    <span class="status-badge status-out"><span class="status-dot"></span> {{ log.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="font-size: 0.85rem;">
+                                    <i class="fa-solid fa-location-dot text-info"></i> {{ log.location_name }}
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.78rem; color: var(--accent-cyan);">
+                                    <i class="fa-solid fa-qrcode me-1"></i> {{ log.verification_method or 'QR Code Scanner' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">
+                                    {{ log.check_in_time }}
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                    {{ log.notes if log.notes else '-' }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            No attendance logs recorded yet.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

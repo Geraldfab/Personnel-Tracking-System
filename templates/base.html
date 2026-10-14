@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#06b6d4">
+    <meta name="description" content="Mobile-optimized IT Personnel Tracking System with Background Touchless QR Scanner">
+    <title>{% block title %}IT Personnel Tracker & Digital ID{% endblock %}</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
+
+    <!-- Offline Local Fonts (Inter & JetBrains Mono) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/fonts.css') }}">
+
+    <!-- Offline Local FontAwesome Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    
+    <!-- Offline Local HTML5 QR Code Library for Camera Scanner -->
+    <script src="{{ url_for('static', filename='vendor/html5-qrcode/html5-qrcode.min.js') }}" type="text/javascript"></script>
+
+    <!-- Custom Theme Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Desktop Top Navbar (Organized Proportional Layout) -->
+    <header class="top-navbar">
+        <a href="{{ url_for('dashboard') }}" class="brand-logo">
+            <div class="brand-icon">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+            <div class="brand-text-wrap">
+                <div class="brand-title">TechCore <span class="brand-badge">IT OPS</span></div>
+                <div class="brand-sub">Personnel Tracking</div>
+            </div>
+        </a>
+
+        <nav class="desktop-menu">
+            <a href="{{ url_for('dashboard') }}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="{{ url_for('personnel') }}" class="nav-link {% if active_page == 'personnel' %}active{% endif %}">
+                <i class="fa-solid fa-user-shield"></i> Personnel
+            </a>
+            <a href="{{ url_for('schedules') }}" class="nav-link {% if active_page == 'schedules' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-days"></i> Schedules
+            </a>
+            <a href="{{ url_for('attendance') }}" class="nav-link {% if active_page == 'attendance' %}active{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i> Attendance
+            </a>
+            <a href="{{ url_for('leaves') }}" class="nav-link {% if active_page == 'leaves' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-check"></i> Leaves
+            </a>
+            <a href="{{ url_for('settings') }}" class="nav-link {% if active_page == 'settings' %}active{% endif %}">
+                <i class="fa-solid fa-sliders"></i> Settings
+            </a>
+        </nav>
+
+        <div class="navbar-actions">
+            <!-- Offline Status Pill -->
+            <div class="nav-action-pill nav-status-pill" title="System operates 100% offline">
+                <span class="status-dot pulse" style="background: #10b981; width: 6px; height: 6px; display: inline-block;"></span>
+                <span>Offline</span>
+            </div>
+
+            <!-- Quick Check-In Button -->
+            <button type="button" class="nav-action-pill nav-btn-action" onclick="openModal('checkinModal')">
+                <i class="fa-solid fa-location-dot text-info"></i> Check In
+            </button>
+
+            <!-- Admin Authentication Controls -->
+            {% if is_admin %}
+                <div class="nav-action-pill nav-admin-badge">
+                    <span><i class="fa-solid fa-user-check me-1"></i> {{ admin_name }}</span>
+                    <a href="{{ url_for('logout') }}" title="Logout Admin" style="margin-left: 4px;">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </a>
+                </div>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-action-pill nav-btn-action" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">
+                    <i class="fa-solid fa-lock me-1"></i> Admin
+                </a>
+            {% endif %}
+
+            <!-- Dark / Light Mode Icon-Only Toggle -->
+            <button id="themeToggleBtn" type="button" class="nav-icon-btn" onclick="toggleTheme()" title="Switch Theme">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Small Top-Left Camera Display Widget (Below Menu Bar) -->
+    <div id="miniCameraWidget" class="mini-camera-widget">
+        <div class="mini-cam-header">
+            <div class="mini-cam-header-title">
+                <span class="status-dot pulse" style="background:#10b981; display:inline-block; width:6px; height:6px;"></span>
+                <span>LIVE QR SCAN</span>
+            </div>
+            <button type="button" class="mini-cam-toggle" onclick="toggleMiniCamera()" title="Toggle Camera Preview">
+                <i id="miniCamToggleIcon" class="fa-solid fa-chevron-up"></i>
+            </button>
+        </div>
+        <div id="backgroundQrReader" class="mini-cam-viewport"></div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="app-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 1rem;">
+                    {% for category, message in messages %}
+                        <div class="glass-panel" style="padding: 0.8rem 1.2rem; border-left: 4px solid {% if category == 'success' %}var(--status-office){% elif category == 'warning' %}var(--status-remote){% else %}var(--status-leave){% endif %}; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <i class="fa-solid {% if category == 'success' %}fa-check-circle text-success{% else %}fa-info-circle text-info{% endif %} me-2"></i>
+                                {{ message }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Android Mobile Bottom Navigation Bar (Organized Equal Layout) -->
+    <nav class="mobile-bottom-nav">
+        <a href="{{ url_for('dashboard') }}" class="bottom-nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dash</span>
+        </a>
+        <a href="{{ url_for('personnel') }}" class="bottom-nav-item {% if active_page == 'personnel' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i>
+            <span>Team</span>
+        </a>
+        <a href="{{ url_for('schedules') }}" class="bottom-nav-item {% if active_page == 'schedules' %}active{% endif %}">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Shifts</span>
+        </a>
+        <a href="{{ url_for('attendance') }}" class="bottom-nav-item {% if active_page == 'attendance' %}active{% endif %}">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Logs</span>
+        </a>
+        <a href="{{ url_for('leaves') }}" class="bottom-nav-item {% if active_page == 'leaves' %}active{% endif %}">
+            <i class="fa-solid fa-calendar-minus"></i>
+            <span>Leaves</span>
+        </a>
+    </nav>
+
+    <!-- Hidden Background Container for Camera QR Scanner (No Video POV Displayed) -->
+    <div id="backgroundQrReader" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; z-index: -1;"></div>
+
+    <!-- Quick Manual Check-in Modal -->
+    <div id="checkinModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-location-crosshairs text-info"></i> Mobile Quick Check-In
+                </div>
+                <button class="modal-close" onclick="closeModal('checkinModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form onsubmit="submitQuickCheckin(event)">
+                <div class="form-group">
+                    <label class="form-label">Attendance Mode</label>
+                    <select name="mode" class="form-select" required>
+                        <option value="check_in">🟢 Attendance-In (8:00 AM - 9:00 AM Window)</option>
+                        <option value="check_out">🔴 Attendance-Out (4:00 PM Shift End)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Select Employee</label>
+                    <select name="emp_id" class="form-select" required>
+                        <option value="">-- Choose Team Member --</option>
+                        {% if all_employees %}
+                            {% for emp in all_employees %}
+                                <option value="{{ emp.id }}">{{ emp.emp_code }} - {{ emp.full_name }} ({{ emp.status }})</option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Update Status</label>
+                    <select name="status" class="form-select" required>
+                        <option value="In Office">🟢 In Office (HQ Lab)</option>
+                        <option value="Remote">🟡 Remote / WFH</option>
+                        <option value="In Meeting">🟣 In Meeting / Client Sync</option>
+                        <option value="On Leave">🔴 On Leave</option>
+                        <option value="Out of Office">⚪ Out of Office</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <label class="form-label" style="margin-bottom: 0;">Location / Node Tag</label>
+                        <button type="button" class="btn-outline-tech" onclick="getDeviceLocation('checkinLat', 'checkinLng', 'checkinLocName')" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; min-height: 28px;">
+                            <i class="fa-solid fa-crosshairs"></i> Use GPS
+                        </button>
+                    </div>
+                    <input type="text" id="checkinLocName" name="location_name" class="form-input" placeholder="e.g. Server Room B, Home Lab, Client HQ" value="Headquarters - Main IT Ops">
+                    <div id="geoStatusText" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                        Tap 'Use GPS' to get Android device coordinates.
+                    </div>
+                </div>
+
+                <input type="hidden" id="checkinLat" name="latitude" value="37.7749">
+                <input type="hidden" id="checkinLng" name="longitude" value="-122.4194">
+
+                <div class="form-group">
+                    <label class="form-label">Notes / Task Context (Optional)</label>
+                    <input type="text" name="notes" class="form-input" placeholder="e.g. Deploying v2.4 patch set">
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-outline-tech" onclick="closeModal('checkinModal')" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn-tech" style="flex: 2;">
+                        <i class="fa-solid fa-paper-plane"></i> Submit Check-In
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/qr_scanner.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
